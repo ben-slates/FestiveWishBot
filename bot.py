@@ -87,7 +87,6 @@ class FestiveWishBot:
         if data == "new":
             keyboard = [
                 [InlineKeyboardButton("🚇 ngrok", callback_data="tunnel_ngrok")],
-                [InlineKeyboardButton("☁️ Cloudflared", callback_data="tunnel_cf")],
             ]
             await query.edit_message_text(
                 "Select tunnel:",

